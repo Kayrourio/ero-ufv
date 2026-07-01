@@ -14,6 +14,7 @@ const innerRef = ref(null)
 const edgeLayerRef = ref(null)
 const minimapRef = ref(null)
 const zoomIndicatorRef = ref(null)
+const dropTargetRef = ref(null)
 
 let stopWatch = null
 
@@ -24,6 +25,7 @@ onMounted(() => {
     svg: edgeLayerRef.value.$el,
     minimap: minimapRef.value.$el,
     zoomIndicator: zoomIndicatorRef.value,
+    dropTarget: dropTargetRef.value,
   })
 
   stopWatch = watchEffect(() => {
@@ -56,6 +58,7 @@ onUnmounted(() => {
   <div id="canvas-wrapper" ref="wrapperRef" :class="{ 'panel-open': store.sidePanelOpen }">
     <div id="canvas-inner" ref="innerRef">
       <period-headers></period-headers>
+      <div class="column-drop-target" ref="dropTargetRef"></div>
       <edge-layer ref="edgeLayerRef"></edge-layer>
       <node-card v-for="d in DISCIPLINES" :key="d.code" :discipline="d"></node-card>
     </div>

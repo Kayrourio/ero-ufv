@@ -3,21 +3,14 @@ export const NODE_H = 64
 export const GAP_Y = 24
 export const Y_START = 80
 export const CANVAS_TOTAL_W = 2100
+export const COL_WIDTH = 200
+export const COL_X0 = 40
+export const DEFAULT_MAX_PERIOD = 10
 
-export const COLUMNS = {
-  1: { x: 40, nodes: ['ECO270', 'ELT170', 'ELT171', 'FIS201', 'INF100', 'MAT141'] },
-  2: { x: 240, nodes: ['ELT270', 'FIS224', 'INF101', 'MAT135', 'MAT143', 'QUI100'] },
-  3: { x: 440, nodes: ['ELT211', 'ELT216', 'ELT230', 'ELT271', 'EST106', 'FIS203', 'MAT243'] },
-  4: { x: 640, nodes: ['ADM100', 'ELT110', 'ELT231', 'ELT236', 'ELT414', 'FIS202', 'MAT340'] },
-  5: {
-    x: 840,
-    nodes: ['ELT210', 'ELT215', 'ELT232', 'ELT237', 'ELT272', 'ELT310', 'ELT315', 'ENG275', 'FIS233'],
-  },
-  6: { x: 1060, nodes: ['ELT330', 'ELT373', 'ELT430', 'EPR397', 'MAT271'] },
-  7: { x: 1260, nodes: ['ELT331', 'ELT335', 'ELT350', 'ELT355', 'ELT374', 'ELT471', 'ELT472', 'ELT476'] },
-  8: { x: 1460, nodes: ['ELT333', 'ELT336', 'ELT451', 'ELT477'] },
-  9: { x: 1660, nodes: ['ELT401'] },
-  10: { x: 1860, nodes: ['ELT402', 'ELT498'] },
+// Any period number (including ones a cascade pushes past the catalog's
+// max period) resolves to a deterministic column position.
+export function periodX(period) {
+  return COL_X0 + (period - 1) * COL_WIDTH
 }
 
 export const DISCIPLINES = [

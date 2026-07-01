@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { DEFAULT_MAX_PERIOD } from './data'
 
 export const store = reactive({
   selected: null,
@@ -10,4 +11,9 @@ export const store = reactive({
   directDependents: new Set(),
   transitiveDependents: new Set(),
   impactLevel: 'low',
+
+  // Reorganization state — driven by canvasEngine.relayout()
+  movedNodes: new Set(),
+  moveInfo: {},
+  maxPeriod: DEFAULT_MAX_PERIOD,
 })

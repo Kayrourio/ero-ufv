@@ -1,18 +1,46 @@
-import { DISCIPLINES, COLUMNS, EDGES, NODE_W, NODE_H, GAP_Y, Y_START, CANVAS_TOTAL_W } from './data'
+import {
+  DISCIPLINES,
+  DISCIPLINE_MAP,
+  EDGES,
+  NODE_W,
+  NODE_H,
+  GAP_Y,
+  Y_START,
+  CANVAS_TOTAL_W,
+  COL_WIDTH,
+  COL_X0,
+  DEFAULT_MAX_PERIOD,
+  periodX,
+} from './data'
 import { graphUtils, EDGE_STYLES } from './graphUtils'
 import { store } from './store'
+import {
+  computeEffectivePeriods,
+  getMinRequiredPeriod,
+  setOverride,
+  resetOverride,
+  resetAllOverrides,
+} from './scheduling'
 
 /*
  * Everything in this module is plain, non-reactive JS state and DOM
  * manipulation. Pan, zoom, drag and edge/minimap redraws happen on every
  * animation frame — running them through Vue's reactivity would re-render
  * the whole tree each frame and cause jank. Only discrete state changes
- * (selection, search, locale, panel open/close) go through the reactive
- * `store`.
+ * (selection, search, locale, panel open/close, "who moved") go through the
+ * reactive `store`.
+ *
+ * Layout itself is no longer free-pixel: a node's position is always
+ * derived from its *effective period* (see scheduling.js), snapped into a
+ * column. Dragging only chooses which column a course lands in; relayout()
+ * then cascades that choice through every prereq/coreq dependent in one
+ * topological pass and re-lays out the whole graph.
  */
 
 export const nodePositions = {}
 const adjacencyIndex = {}
+const catalogIndex = {}
+DISCIPLINES.forEach((d, i) => (catalogIndex[d.code] = i))
 
 let pan = { x: 0, y: 0 }
 let zoom = 0.85
@@ -20,20 +48,14 @@ let drag = null
 let isPanning = false
 let panStart = { x: 0, y: 0 }
 let panMoved = false
+let previousEffective = null
 
 let canvasWrapper = null
 let canvasInner = null
 let edgesSvg = null
 let minimapEl = null
 let zoomIndicatorEl = null
-
-function defaultNodePositions() {
-  Object.entries(COLUMNS).forEach(([, col]) => {
-    col.nodes.forEach((code, i) => {
-      nodePositions[code] = { x: col.x, y: Y_START + i * (NODE_H + GAP_Y) }
-    })
-  })
-}
+let dropTargetEl = null
 
 function buildAdjacencyIndex() {
   EDGES.forEach((edge, i) => {
@@ -75,9 +97,83 @@ function applyAllNodePositions() {
   })
 }
 
+function pulseNode(code) {
+  const el = document.getElementById(`node-${code}`)
+  if (!el) return
+  el.classList.remove('pulse')
+  void el.offsetWidth // restart the CSS animation
+  el.classList.add('pulse')
+  setTimeout(() => el.classList.remove('pulse'), 650)
+}
+
+// Recompute effective periods for the whole graph, re-lay out every node
+// into its column, and sync `store.movedNodes`/`moveInfo` for badges.
+export function relayout() {
+  const effective = computeEffectivePeriods()
+  const isFirstRun = previousEffective === null
+
+  const groups = {}
+  DISCIPLINES.forEach((d) => {
+    const period = effective[d.code]
+    if (!groups[period]) groups[period] = []
+    groups[period].push(d.code)
+  })
+  Object.values(groups).forEach((list) => {
+    list.sort((a, b) => {
+      const pa = DISCIPLINE_MAP[a].period
+      const pb = DISCIPLINE_MAP[b].period
+      if (pa !== pb) return pa - pb
+      return catalogIndex[a] - catalogIndex[b]
+    })
+  })
+  Object.entries(groups).forEach(([period, list]) => {
+    list.forEach((code, i) => {
+      nodePositions[code] = { x: periodX(Number(period)), y: Y_START + i * (NODE_H + GAP_Y) }
+    })
+  })
+
+  const moved = new Set()
+  const moveInfo = {}
+  const changedNow = new Set()
+  DISCIPLINES.forEach((d) => {
+    const eff = effective[d.code]
+    if (eff !== d.period) {
+      moved.add(d.code)
+      moveInfo[d.code] = { from: d.period, to: eff }
+    }
+    if (!previousEffective || previousEffective[d.code] !== eff) changedNow.add(d.code)
+  })
+  store.movedNodes = moved
+  store.moveInfo = moveInfo
+  store.maxPeriod = Math.max(DEFAULT_MAX_PERIOD, ...Object.values(effective))
+
+  applyAllNodePositions()
+  redrawAllEdges()
+  applyNodeStates()
+  updateMinimap()
+
+  if (!isFirstRun) changedNow.forEach((code) => pulseNode(code))
+  previousEffective = effective
+}
+
 export function applyTransform() {
   canvasInner.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`
   if (zoomIndicatorEl) zoomIndicatorEl.textContent = Math.round(zoom * 100) + '%'
+}
+
+function columnFromX(x) {
+  return Math.max(1, Math.round((x - COL_X0) / COL_WIDTH) + 1)
+}
+
+function showDropTarget(period) {
+  if (!dropTargetEl) return
+  dropTargetEl.style.display = 'block'
+  dropTargetEl.style.left = periodX(period) - 20 + 'px'
+}
+
+function hideDropTarget() {
+  if (!dropTargetEl) return
+  dropTargetEl.style.display = 'none'
 }
 
 export function startDrag(code, el, e) {
@@ -91,6 +187,7 @@ export function startDrag(code, el, e) {
     startNX: nodePositions[code].x,
     startNY: nodePositions[code].y,
     moved: false,
+    targetPeriod: previousEffective ? previousEffective[code] : DISCIPLINE_MAP[code].period,
   }
 }
 
@@ -108,6 +205,12 @@ function onDragMove(e) {
   const edgeIds = adjacencyIndex[drag.code] || new Set()
   edgeIds.forEach((i) => redrawEdge(i))
   updateMinimap()
+
+  if (drag.moved) {
+    drag.el.classList.add('dragging')
+    drag.targetPeriod = columnFromX(nodePositions[drag.code].x)
+    showDropTarget(drag.targetPeriod)
+  }
 }
 
 function onCanvasMousedown(e) {
@@ -136,13 +239,28 @@ function onDocumentMousemove(e) {
 
 function onDocumentMouseup() {
   if (drag) {
-    if (!drag.moved) selectNode(drag.code)
+    drag.el.classList.remove('dragging')
+    hideDropTarget()
+    if (!drag.moved) {
+      selectNode(drag.code)
+    } else {
+      const effectiveBefore = computeEffectivePeriods()
+      const minReq = getMinRequiredPeriod(drag.code, effectiveBefore)
+      const clamped = Math.max(drag.targetPeriod, minReq)
+      setOverride(drag.code, clamped)
+      relayout()
+    }
     drag = null
   } else if (isPanning) {
     if (!panMoved) deselectNode()
     isPanning = false
     canvasWrapper.classList.remove('panning')
   }
+}
+
+export function onNodeDoubleClick(code) {
+  resetOverride(code)
+  relayout()
 }
 
 function onWheel(e) {
@@ -207,9 +325,8 @@ export function zoomFit() {
 }
 
 export function resetLayout() {
-  defaultNodePositions()
-  applyAllNodePositions()
-  redrawAllEdges()
+  resetAllOverrides()
+  relayout()
   zoom = 0.85
   pan = { x: 0, y: 0 }
   applyTransform()
@@ -251,6 +368,7 @@ export function applyNodeStates() {
     if (!el) return
     el.className = 'node-card'
     el.classList.add(`state-${graphUtils.getNodeState(d.code, store, searchActive)}`)
+    if (store.movedNodes.has(d.code)) el.classList.add('state-moved')
   })
 }
 
@@ -307,13 +425,11 @@ export function initCanvas(refs) {
   edgesSvg = refs.svg
   minimapEl = refs.minimap
   zoomIndicatorEl = refs.zoomIndicator
+  dropTargetEl = refs.dropTarget
 
-  defaultNodePositions()
   buildAdjacencyIndex()
   buildEdgePaths()
-  applyAllNodePositions()
-  redrawAllEdges()
+  relayout()
   bindCanvasEvents()
   applyTransform()
-  updateMinimap()
 }
