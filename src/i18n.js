@@ -23,6 +23,14 @@ export const messages = {
     footer: 'disciplinas · {p} períodos · ERO/UFV 2026',
     statusSelected: '{code} selecionada · {n} dependentes · {m} pré-requisitos',
     statusNone: 'Nenhuma disciplina selecionada',
+    areas: {
+      mat: 'Matemática',
+      fisica: 'Física',
+      elt: 'Elétrica',
+      comp: 'Computação',
+      eng: 'Engenharia',
+      qui: 'Química',
+    },
   },
   en: {
     subtitle: 'Curriculum 2026',
@@ -46,6 +54,14 @@ export const messages = {
     footer: 'disciplines · {p} periods · ERO/UFV 2026',
     statusSelected: '{code} selected · {n} dependents · {m} prerequisites',
     statusNone: 'No discipline selected',
+    areas: {
+      mat: 'Mathematics',
+      fisica: 'Physics',
+      elt: 'Electrical',
+      comp: 'Computing',
+      eng: 'Engineering',
+      qui: 'Chemistry',
+    },
   },
 }
 
@@ -55,4 +71,8 @@ export function t(key, vars = {}) {
     str = str.replace(`{${k}}`, v)
   })
   return str
+}
+
+export function areaLabel(code) {
+  return messages[store.locale].areas[code] || code
 }

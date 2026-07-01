@@ -8,6 +8,7 @@ import PeriodHeaders from './PeriodHeaders.vue'
 import EdgeLayer from './EdgeLayer.vue'
 import NodeCard from './NodeCard.vue'
 import MiniMap from './MiniMap.vue'
+import AreaLegend from './AreaLegend.vue'
 
 const wrapperRef = ref(null)
 const innerRef = ref(null)
@@ -64,5 +65,6 @@ onUnmounted(() => {
     </div>
     <mini-map ref="minimapRef"></mini-map>
     <div id="zoom-indicator" ref="zoomIndicatorRef">85%</div>
+    <area-legend></area-legend>
   </div>
 </template>
