@@ -321,6 +321,7 @@ function onDocumentMouseup(e) {
       const minReq = getMinRequiredPeriod(drag.code, effectiveBefore)
       const clamped = Math.max(drag.targetPeriod, minReq)
       setOverride(drag.code, clamped)
+      store.failedNodes.delete(drag.code)
       relayout()
     }
     drag = null
@@ -333,6 +334,22 @@ function onDocumentMouseup(e) {
 
 export function onNodeDoubleClick(code) {
   resetOverride(code)
+  store.failedNodes.delete(code)
+  relayout()
+}
+
+// Dedicated "I failed this course" action — distinct from dragging: pushes
+// the course to the next period after its current one and cascades
+// dependents, without the user having to pick a target column by hand.
+export function toggleFailed(code) {
+  if (store.failedNodes.has(code)) {
+    resetOverride(code)
+    store.failedNodes.delete(code)
+  } else {
+    const effective = computeEffectivePeriods()
+    setOverride(code, effective[code] + 1)
+    store.failedNodes.add(code)
+  }
   relayout()
 }
 
@@ -407,6 +424,7 @@ export function zoomFit() {
 
 export function resetLayout() {
   resetAllOverrides()
+  store.failedNodes.clear()
   relayout()
   zoom = 0.85
   pan = { x: 0, y: 0 }

@@ -3,11 +3,16 @@ import { computed } from 'vue'
 import { store } from '../store'
 import { t } from '../i18n'
 import { DISCIPLINE_MAP } from '../data'
-import { deselectNode } from '../canvasEngine'
+import { deselectNode, toggleFailed } from '../canvasEngine'
 import PrereqList from './PrereqList.vue'
 import BlockedList from './BlockedList.vue'
 
 const discipline = computed(() => (store.selected ? DISCIPLINE_MAP[store.selected] : null))
+const isFailed = computed(() => (store.selected ? store.failedNodes.has(store.selected) : false))
+
+function onToggleFailed() {
+  if (store.selected) toggleFailed(store.selected)
+}
 
 const prereqItems = computed(() => {
   if (!discipline.value) return []
@@ -37,6 +42,11 @@ const impactLabel = computed(() => {
       <div class="panel-code">{{ discipline.code }}</div>
       <div class="panel-name">{{ discipline.name }}</div>
       <div class="panel-meta">{{ discipline.hours }}{{ t('hours') }} · {{ discipline.credits }} {{ t('credits') }}</div>
+
+      <label class="fail-checkbox">
+        <input type="checkbox" :checked="isFailed" @change="onToggleFailed" />
+        {{ t('failedLabel') }}
+      </label>
 
       <div class="impact-banner" :class="store.impactLevel">
         ⚑ {{ impactLabel.toUpperCase() }} — {{ store.transitiveDependents.size }} {{ t('bloqueadas').toUpperCase() }}

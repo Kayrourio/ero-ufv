@@ -48,11 +48,14 @@ export function computeEffectivePeriods() {
   topoOrder.forEach((code) => {
     const d = DISCIPLINE_MAP[code]
     let period = manualOverrides[code] ?? d.period
+    // Only strict prereqs force a course later — you genuinely can't take
+    // it until the prereq is done. A coreq relationship just means "must be
+    // taken together" *at the time either is taken*; it's already satisfied
+    // by the catalog data and doesn't need to be re-enforced going forward.
+    // Otherwise failing/rescheduling one course would drag its coreq
+    // partner along even if that partner was already passed.
     d.prereqs.forEach((p) => {
       if (effective[p] !== undefined) period = Math.max(period, effective[p] + 1)
-    })
-    d.coreqs.forEach((p) => {
-      if (effective[p] !== undefined) period = Math.max(period, effective[p])
     })
     effective[code] = period
   })

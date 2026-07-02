@@ -16,4 +16,8 @@ export const store = reactive({
   movedNodes: new Set(),
   moveInfo: {},
   maxPeriod: DEFAULT_MAX_PERIOD,
+
+  // Courses explicitly marked "reprovada" via the checkbox (subset of
+  // movedNodes attributable to that specific action, not drag).
+  failedNodes: new Set(),
 })

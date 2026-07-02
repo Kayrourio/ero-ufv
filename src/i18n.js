@@ -23,6 +23,9 @@ export const messages = {
     footer: 'disciplinas · {p} períodos · ERO/UFV 2026',
     statusSelected: '{code} selecionada · {n} dependentes · {m} pré-requisitos',
     statusNone: 'Nenhuma disciplina selecionada',
+    failedLabel: 'Reprovei nesta disciplina',
+    failToggleOn: 'Marcar como reprovada',
+    failToggleOff: 'Desmarcar reprovação',
     areas: {
       mat: 'Matemática',
       fisica: 'Física',
@@ -54,6 +57,9 @@ export const messages = {
     footer: 'disciplines · {p} periods · ERO/UFV 2026',
     statusSelected: '{code} selected · {n} dependents · {m} prerequisites',
     statusNone: 'No discipline selected',
+    failedLabel: 'I failed this course',
+    failToggleOn: 'Mark as failed',
+    failToggleOff: 'Unmark failed',
     areas: {
       mat: 'Mathematics',
       fisica: 'Physics',
