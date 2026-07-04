@@ -19,6 +19,7 @@ export function buildIcs(events) {
     const start = new Date(e.date + 'T00:00:00Z')
     if (Number.isNaN(start.getTime())) return
     const end = new Date(start.getTime() + 86400000)
+    const description = [e.discipline, e.description].filter(Boolean).join(' — ')
     lines.push(
       'BEGIN:VEVENT',
       `UID:${now}-${i}@ero-hub`,
@@ -26,7 +27,7 @@ export function buildIcs(events) {
       `DTSTART;VALUE=DATE:${dateStamp(start)}`,
       `DTEND;VALUE=DATE:${dateStamp(end)}`,
       `SUMMARY:${escapeText(e.title)}`,
-      e.discipline ? `DESCRIPTION:${escapeText(e.discipline)}` : null,
+      description ? `DESCRIPTION:${escapeText(description)}` : null,
       e.type ? `CATEGORIES:${escapeText(e.type.toUpperCase())}` : null,
       'END:VEVENT',
     )

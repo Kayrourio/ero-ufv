@@ -59,6 +59,7 @@ function toEvents(rows) {
   const titleI = idx('title')
   const typeI = idx('type')
   const discI = idx('discipline')
+  const descI = idx('description')
   return rows
     .slice(1)
     .map((r) => ({
@@ -66,6 +67,7 @@ function toEvents(rows) {
       title: (r[titleI] || '').trim(),
       type: (r[typeI] || 'evento').trim().toLowerCase(),
       discipline: (r[discI] || '').trim(),
+      description: (r[descI] || '').trim(),
     }))
     .filter((e) => e.date && e.title && !Number.isNaN(Date.parse(e.date)))
     .sort((a, b) => a.date.localeCompare(b.date))

@@ -129,7 +129,10 @@ onMounted(loadCalendar)
         <div v-else-if="view === 'lista'" class="cal-list">
           <div v-for="(e, i) in filteredEvents" :key="e.date + e.title + i" class="cal-row" v-reveal="i % 12">
             <span class="hub-mono cal-row-date">{{ formatFull(e.date) }}</span>
-            <span class="cal-row-title">{{ e.title }}</span>
+            <span class="cal-row-main">
+              <span class="cal-row-title">{{ e.title }}</span>
+              <span v-if="e.description" class="cal-row-desc">{{ e.description }}</span>
+            </span>
             <span v-if="e.discipline" class="hub-mono cal-row-disc" :title="disciplineName(e.discipline)">{{ e.discipline }}</span>
             <span class="hub-mono cal-row-type" :class="'t-' + e.type">{{ typeLabels[e.type] || e.type }}</span>
           </div>
@@ -143,7 +146,13 @@ onMounted(loadCalendar)
           </div>
           <div class="cal-grid">
             <div v-for="(w, i) in WEEKDAYS" :key="i" class="cal-weekday hub-mono">{{ w }}</div>
-            <div v-for="(cell, i) in monthCells" :key="i" class="cal-cell" :class="{ empty: !cell, filled: cell && cell.events.length }">
+            <div
+              v-for="(cell, i) in monthCells"
+              :key="i"
+              class="cal-cell"
+              :class="{ empty: !cell, filled: cell && cell.events.length }"
+              :title="cell && cell.events.length ? cell.events.map((e) => e.title).join('\n') : undefined"
+            >
               <template v-if="cell">
                 <span class="cal-cell-day hub-mono">{{ cell.day }}</span>
                 <span v-if="cell.events.length" class="cal-cell-dot"></span>
@@ -243,8 +252,19 @@ onMounted(loadCalendar)
   color: var(--hub-red);
   font-size: 13px;
 }
+.cal-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
 .cal-row-title {
   font-size: 15px;
+}
+.cal-row-desc {
+  font-size: 12.5px;
+  color: var(--hub-muted);
+  line-height: 1.4;
 }
 .cal-row-disc {
   font-size: 11px;
