@@ -11,8 +11,20 @@ const PERIOD_LABELS = {
 export const archiveState = reactive({
   search: '',
   activeType: 'todos',
-  expanded: new Set(),
+  activeCode: null,
 })
+
+export function disciplineByCode(code) {
+  return archiveData.disciplines.find((d) => d.code === code) || null
+}
+
+export function openDiscipline(code) {
+  archiveState.activeCode = code
+}
+
+export function closeDiscipline() {
+  archiveState.activeCode = null
+}
 
 function matches(d) {
   const q = archiveState.search.trim().toLowerCase()
@@ -63,11 +75,6 @@ export function filesByType(discipline) {
       count: t.count,
       files: discipline.files.filter((f) => f.type === t.type),
     }))
-}
-
-export function toggleExpanded(code) {
-  if (archiveState.expanded.has(code)) archiveState.expanded.delete(code)
-  else archiveState.expanded.add(code)
 }
 
 // Cards da vitrine na landing: prioriza disciplinas com material; se o

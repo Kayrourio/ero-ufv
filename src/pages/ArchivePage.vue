@@ -4,15 +4,15 @@ import { CONTRIBUTE_FORM_URL } from '../config'
 import {
   archiveState,
   filteredPeriods,
-  toggleExpanded,
+  openDiscipline,
   typeCounts,
-  filesByType,
   TYPES,
   totalDisciplines,
   totalPeriods,
 } from '../data/useArchive'
 import SiteNav from '../components/hub/SiteNav.vue'
 import SiteFooter from '../components/hub/SiteFooter.vue'
+import DisciplineModal from '../components/hub/DisciplineModal.vue'
 
 const typeLabels = { todos: 'Todos', prova: 'Provas', lista: 'Listas', resumo: 'Resumos', slide: 'Slides', livro: 'Livros' }
 const typeFilters = ['todos', ...TYPES]
@@ -83,10 +83,9 @@ function jumpTo(period) {
           <article
             v-for="(c, i) in p.disciplines"
             :key="c.code"
-            class="arc-card hub-scan-card hub-lift"
-            :class="{ active: archiveState.expanded.has(c.code) }"
+            class="arc-card hub-scan-card hub-lift hub-clickable"
             v-reveal="i"
-            @click="toggleExpanded(c.code)"
+            @click="openDiscipline(c.code)"
           >
             <div class="arc-card-top">
               <span class="arc-card-code hub-mono">{{ c.code }}</span>
@@ -102,30 +101,6 @@ function jumpTo(period) {
               >
                 <span class="arc-count-n hub-mono">{{ tc.count }}</span>
                 <span class="arc-count-t hub-mono">{{ tc.type }}</span>
-              </div>
-            </div>
-            <div v-if="archiveState.expanded.has(c.code)" class="arc-files">
-              <div v-if="!c.files.length" class="arc-files-empty hub-mono">
-                Ainda sem material — contribua com o primeiro.
-              </div>
-              <div v-for="group in filesByType(c)" :key="group.type" class="arc-group">
-                <div class="arc-group-head hub-mono">
-                  // {{ typeLabels[group.type].toUpperCase() }} <span class="arc-group-n">({{ group.count }})</span>
-                </div>
-                <a
-                  v-for="(f, fi) in group.files"
-                  :key="fi"
-                  class="arc-file-row"
-                  :class="{ 'no-link': !f.url }"
-                  :href="f.url || undefined"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  @click.stop="!f.url && $event.preventDefault()"
-                >
-                  <span class="arc-file-name">{{ f.name }}</span>
-                  <span class="hub-mono arc-file-date">{{ f.date || '—' }}</span>
-                  <span class="arc-file-dl" aria-hidden="true">↓</span>
-                </a>
               </div>
             </div>
           </article>
@@ -151,6 +126,7 @@ function jumpTo(period) {
     </main>
 
     <site-footer></site-footer>
+    <discipline-modal></discipline-modal>
   </div>
 </template>
 
@@ -278,9 +254,6 @@ function jumpTo(period) {
 .arc-card:hover {
   border-color: #b8b8b8;
 }
-.arc-card.active {
-  border-color: var(--hub-red);
-}
 .arc-card-top {
   display: flex;
   align-items: baseline;
@@ -334,69 +307,6 @@ function jumpTo(period) {
   color: var(--hub-faint);
   opacity: 0.6;
 }
-.arc-files {
-  margin-top: 16px;
-  border-top: 1px solid var(--hub-line-soft);
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.arc-files-empty {
-  font-size: 12px;
-  color: var(--hub-faint);
-}
-.arc-group {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.arc-group-head {
-  font-size: 10px;
-  letter-spacing: 1.2px;
-  color: var(--hub-faint);
-}
-.arc-group-head .arc-group-n {
-  color: var(--hub-red);
-}
-.arc-file-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: inherit;
-  text-decoration: none;
-  border-radius: 3px;
-  padding: 4px 6px;
-  margin: 0 -6px;
-  transition: background 120ms;
-}
-.arc-file-row:not(.no-link):hover {
-  background: var(--hub-off-2);
-}
-.arc-file-row.no-link {
-  cursor: default;
-}
-.arc-file-row.no-link .arc-file-dl {
-  color: var(--hub-faint);
-}
-.arc-file-name {
-  font-size: 13px;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.arc-file-date {
-  font-size: 11px;
-  color: var(--hub-faint);
-  flex-shrink: 0;
-}
-.arc-file-dl {
-  color: var(--hub-red);
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
 .arc-contribute {
   margin-top: 20px;
   background: var(--hub-off-2);
