@@ -129,13 +129,26 @@ onUnmounted(() => {
   opacity: 0;
   transform: translateY(18px) scale(0.96);
 }
+@media (prefers-reduced-motion: reduce) {
+  .dm-panel-enter-active,
+  .dm-panel-leave-active {
+    transition: opacity 150ms ease;
+  }
+  .dm-panel-enter-from,
+  .dm-panel-leave-to {
+    transform: none;
+  }
+}
 
 .dm-close {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 30px;
-  height: 30px;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   border: 1px solid var(--hub-line);
   background: #fff;
@@ -151,7 +164,7 @@ onUnmounted(() => {
 }
 
 .dm-head {
-  padding-right: 30px;
+  padding-right: 44px;
 }
 .dm-period {
   display: inline-block;

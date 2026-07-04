@@ -461,4 +461,12 @@ onUnmounted(() => {
     height: 340px;
   }
 }
+@media (max-width: 640px) {
+  .r2-host {
+    height: 230px;
+  }
+  .r2-hint {
+    font-size: 8px;
+  }
+}
 </style>

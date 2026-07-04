@@ -54,7 +54,7 @@ onMounted(loadCalendar)
     <section class="hero">
       <div class="hero-grid hub-wrap">
         <div class="hero-title-col">
-          <div class="hub-eyebrow" v-reveal="0">UNIVERSIDADE FEDERAL DE VIÇOSA · ERO · 2026</div>
+          <div class="hub-eyebrow hero-eyebrow" v-reveal="0">UNIVERSIDADE FEDERAL DE VIÇOSA · ERO · 2026</div>
           <h1 class="hero-h1" v-reveal="1">Engenharia<br />de Robôs<span class="dot">.</span></h1>
           <div class="hero-tagline" v-reveal="2">Inovar. Projetar. Construir. <span class="dot">Transformar.</span></div>
           <div class="hero-rule" v-reveal="3"></div>
@@ -187,7 +187,7 @@ onMounted(loadCalendar)
     <!-- GRAPH -->
     <section class="section-white">
       <div class="hub-wrap graph-grid">
-        <div v-reveal="0"><graph-preview></graph-preview></div>
+        <div class="graph-preview-col" v-reveal="0"><graph-preview></graph-preview></div>
         <div class="graph-copy">
           <div class="graph-copy-inner" v-reveal="1">
             <div class="hub-eyebrow">03 — GRAFO DE DEPENDÊNCIAS</div>
@@ -566,22 +566,47 @@ onMounted(loadCalendar)
   .calendar-grid {
     grid-template-columns: 1fr;
   }
-  .ghost-number {
-    display: none;
+  .graph-preview-col {
+    /* empilhado, o texto deve vir antes do preview — mesma ordem de
+       leitura que a seção de Calendário (texto, depois conteúdo) */
+    order: 2;
+  }
+  .graph-copy {
+    order: 1;
   }
 }
 @media (max-width: 640px) {
   .hub-wrap {
     padding: 0 20px;
   }
+  .hero-grid {
+    /* sem o eyebrow, o título não pode começar colado no nav */
+    padding-top: 80px;
+  }
+  .hero-eyebrow {
+    display: none;
+  }
   .hero-h1 {
-    font-size: 48px;
+    font-size: 58px;
+  }
+  .hero-robot-col {
+    /* no celular ele fica solto sem contexto — melhor deixar só no
+       tablet/desktop, onde tem espaço ao lado do texto pra fazer sentido */
+    display: none;
+  }
+  .hero-stats-col {
+    margin-top: 8px;
   }
   .quick-grid {
     grid-template-columns: 1fr;
   }
-  .quick-card:nth-child(2) {
-    border-left: 1px solid rgba(255, 255, 255, 0.15);
+  .quick-card {
+    padding: 26px 24px;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .quick-card:first-child {
+    border-top: none;
   }
   .archive-grid {
     grid-template-columns: 1fr;

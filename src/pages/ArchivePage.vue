@@ -19,7 +19,9 @@ const typeFilters = ['todos', ...TYPES]
 
 function jumpTo(period) {
   const el = document.getElementById('periodo-' + period)
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  if (!el) return
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
 }
 </script>
 

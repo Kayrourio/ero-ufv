@@ -90,7 +90,7 @@ onMounted(loadCalendar)
           <h1 class="cal-h1">Eventos do semestre.</h1>
           <p class="cal-sub">Provas, entregas e prazos, direto da planilha da turma.</p>
         </div>
-        <button class="hub-btn primary" @click="exportAll" :disabled="!filteredEvents.length">
+        <button class="hub-btn primary cal-export cal-export-desktop" @click="exportAll" :disabled="!filteredEvents.length">
           Exportar .ics <span>↓</span>
         </button>
       </div>
@@ -100,6 +100,9 @@ onMounted(loadCalendar)
       <div class="cal-view-toggle">
         <button class="hub-pill" :class="{ active: view === 'lista' }" @click="view = 'lista'">Lista</button>
         <button class="hub-pill" :class="{ active: view === 'mes' }" @click="view = 'mes'">Mês</button>
+        <button class="hub-btn primary cal-export cal-export-mobile" @click="exportAll" :disabled="!filteredEvents.length">
+          Exportar .ics <span>↓</span>
+        </button>
       </div>
       <div class="cal-filters">
         <select v-model="activeType" class="hub-mono cal-select">
@@ -205,6 +208,10 @@ onMounted(loadCalendar)
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
+}
+.cal-export-mobile {
+  display: none;
 }
 .cal-select {
   font-size: 16px;
@@ -267,14 +274,24 @@ onMounted(loadCalendar)
   line-height: 1.4;
 }
 .cal-row-disc {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--hub-muted);
+  border: 1px solid var(--hub-line);
+  border-radius: 3px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  justify-self: start;
 }
 .cal-row-type {
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.5px;
   text-align: right;
   color: var(--hub-faint);
+  border: 1px solid var(--hub-line-soft);
+  border-radius: 3px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  justify-self: end;
 }
 .cal-row-type.t-prova {
   color: var(--hub-red);
@@ -333,6 +350,15 @@ onMounted(loadCalendar)
 @media (max-width: 640px) {
   .hub-wrap {
     padding: 0 20px;
+  }
+  .cal-export-desktop {
+    display: none;
+  }
+  .cal-export-mobile {
+    display: inline-flex;
+    font-size: 12px;
+    padding: 8px 12px;
+    gap: 6px;
   }
   .cal-row {
     grid-template-columns: 80px 1fr;

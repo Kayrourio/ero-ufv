@@ -294,6 +294,13 @@ body {
   cursor: pointer;
   z-index: 2;
 }
+.node-card .fail-toggle::before {
+  /* área de toque real maior que o círculo visível (15px), sem inflar
+     o botão e desequilibrar o card compacto */
+  content: '';
+  position: absolute;
+  inset: -11px;
+}
 .node-card .fail-toggle:hover {
   border-color: var(--red);
   color: var(--red);
