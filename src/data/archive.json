@@ -78,7 +78,14 @@
       "code": "MAT143",
       "name": "Cálculo II",
       "period": 2,
-      "files": []
+      "files": [
+        {
+          "type": "livro",
+          "name": "calc2-stewart-9ed",
+          "date": "2026-07-11",
+          "url": "https://drive.google.com/file/d/1smEuyxwuPhOd3APgdH4Tpij6RRE4L1QG/view?usp=drivesdk"
+        }
+      ]
     },
     {
       "code": "QUI100",
