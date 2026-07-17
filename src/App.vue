@@ -6,6 +6,7 @@ import ArchivePage from './pages/ArchivePage.vue'
 import CalendarPage from './pages/CalendarPage.vue'
 import LinksPage from './pages/LinksPage.vue'
 import GraphPage from './pages/GraphPage.vue'
+import UploadPage from './pages/UploadPage.vue'
 import PageWipe from './components/hub/PageWipe.vue'
 import CursorFX from './components/hub/CursorFX.vue'
 
@@ -15,6 +16,7 @@ const pages = {
   '/calendario': CalendarPage,
   '/links': LinksPage,
   '/grafo': GraphPage,
+  '/upload': UploadPage,
 }
 
 const page = computed(() => pages[route.path] || HomePage)

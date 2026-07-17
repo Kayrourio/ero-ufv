@@ -112,18 +112,20 @@ function jumpTo(period) {
       <div class="arc-contribute" v-reveal="0">
         <div>
           <div class="arc-contribute-title">Tem material pra compartilhar?</div>
-          <div class="arc-contribute-desc">Envie pelo formulário — disciplina, tipo de material e o link do arquivo.</div>
+          <div class="arc-contribute-desc">Envie direto pelo site — o nome do arquivo é gerado automaticamente.</div>
         </div>
-        <a
-          v-if="CONTRIBUTE_FORM_URL"
-          class="hub-btn ghost-light"
-          :href="CONTRIBUTE_FORM_URL"
-          target="_blank"
-          rel="noopener noreferrer"
-        >Contribuir <span class="red">→</span></a>
-        <button v-else class="hub-btn ghost-light" disabled title="Configure VITE_CONTRIBUTE_FORM_URL">
-          Contribuir <span class="red">→</span>
-        </button>
+        <div class="arc-contribute-actions">
+          <button class="hub-btn primary" @click="navigate('/upload')">
+            Enviar arquivo <span>→</span>
+          </button>
+          <a
+            v-if="CONTRIBUTE_FORM_URL"
+            class="hub-btn ghost-light"
+            :href="CONTRIBUTE_FORM_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+          >Contribuir por formulário <span class="red">→</span></a>
+        </div>
       </div>
     </main>
 
@@ -330,6 +332,11 @@ function jumpTo(period) {
 .arc-contribute-desc {
   font-size: 15px;
   color: var(--hub-muted);
+}
+.arc-contribute-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .red {
   color: var(--hub-red);

@@ -3,7 +3,7 @@ import { reactive } from 'vue'
 // Router mínimo em history mode. vue-router não entra por conflito de peer
 // deps com o vue beta; para 5 rotas estáticas isso cobre tudo que precisamos
 // e dá controle total sobre a transição de página (wipe).
-export const PATHS = ['/', '/archive', '/calendario', '/links', '/grafo']
+export const PATHS = ['/', '/archive', '/calendario', '/links', '/grafo', '/upload']
 
 function normalize(p) {
   if (!p) return '/'

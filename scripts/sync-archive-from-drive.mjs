@@ -21,19 +21,12 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DISCIPLINES } from '../src/data.js'
+import { FOLDER_TO_TYPE } from '../src/data/driveTypes.js'
 
 const API_KEY = process.env.DRIVE_API_KEY
 const ROOT_ID = process.env.DRIVE_ROOT_FOLDER_ID
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
-
-const FOLDER_TO_TYPE = {
-  exams: 'prova',
-  assignments: 'lista',
-  summaries: 'resumo',
-  slides: 'slide',
-  books: 'livro',
-}
 
 function assertEnv() {
   const missing = ['DRIVE_API_KEY', 'DRIVE_ROOT_FOLDER_ID'].filter((k) => !process.env[k])
