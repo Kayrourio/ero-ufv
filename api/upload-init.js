@@ -1,76 +1,39 @@
 // Vercel Serverless Function: autoriza e prepara um upload de material pro
 // Drive. Não recebe os bytes do arquivo — só valida a senha compartilhada,
-// autentica como service account, garante que a pasta
-// <ROOT>/<DISCIPLINA>/<tipo>/ existe e devolve uma URL de "resumable upload"
-// do próprio Google. O navegador faz o PUT do arquivo direto pra essa URL
-// (ver src/pages/UploadPage.vue), sem passar pelo limite de payload (~4.5MB)
-// das functions da Vercel.
+// autentica como a conta Google dona da pasta (via refresh token OAuth —
+// service accounts não têm cota de armazenamento própria e não conseguem
+// escrever num "Meu Drive" pessoal, só em Shared Drives do Workspace), acha
+// ou cria a pasta <ROOT>/<DISCIPLINA>/<tipo>/ e devolve uma URL de
+// "resumable upload" do próprio Google. O navegador faz o PUT do arquivo
+// direto pra essa URL (ver src/pages/UploadPage.vue), sem passar pelo
+// limite de payload (~4.5MB) das functions da Vercel.
 //
 // Env vars exigidas: DRIVE_ROOT_FOLDER_ID (já usada pelo sync de leitura),
-// GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY,
-// UPLOAD_ACCESS_PASSWORD. A pasta raiz do Drive precisa estar compartilhada
-// com o e-mail da service account como Editor.
+// GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET,
+// GOOGLE_OAUTH_REFRESH_TOKEN, UPLOAD_ACCESS_PASSWORD.
+// O refresh token é gerado uma vez, localmente, com
+// `node --env-file=.env scripts/get-drive-refresh-token.mjs` — veja esse
+// script pra instruções de setup do OAuth Client.
 
 import crypto from 'node:crypto'
 import { DISCIPLINES } from '../src/data.js'
 import { TYPE_TO_FOLDER } from '../src/data/driveTypes.js'
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
 
-// A chave costuma chegar mal formatada dependendo de como foi colada no
-// painel de env vars (aspas literais ao redor, "\n" escapado em vez de
-// quebra de linha real, ou até a chave inteira colapsada numa única linha
-// se o campo de input não preservou as quebras de linha do PEM original).
-// Normaliza esses casos e, no pior caso (uma linha só), reconstrói o PEM
-// quebrando o corpo em blocos de 64 caracteres.
-function normalizePrivateKey(raw) {
-  let key = (raw || '').trim().replace(/^['"]|['"]$/g, '')
-  key = key.replace(/\\n/g, '\n')
-  if (key.includes('\n')) return key
-
-  const match = key.match(/-----BEGIN (RSA )?PRIVATE KEY-----(.*?)-----END (RSA )?PRIVATE KEY-----/)
-  if (!match) return key
-  const label = match[1] ? 'RSA PRIVATE KEY' : 'PRIVATE KEY'
-  const body = match[2].replace(/\s+/g, '')
-  const wrapped = body.match(/.{1,64}/g)?.join('\n') || body
-  return `-----BEGIN ${label}-----\n${wrapped}\n-----END ${label}-----\n`
-}
-
-function base64url(input) {
-  return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-function signServiceAccountJWT(email, privateKey) {
-  const now = Math.floor(Date.now() / 1000)
-  const header = { alg: 'RS256', typ: 'JWT' }
-  const claim = {
-    iss: email,
-    scope: DRIVE_SCOPE,
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600,
-  }
-  const signInput = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(claim))}`
-  const signer = crypto.createSign('RSA-SHA256')
-  signer.update(signInput)
-  signer.end()
-  const signature = signer.sign(privateKey).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-  return `${signInput}.${signature}`
-}
-
-async function getAccessToken(email, privateKey) {
-  const jwt = signServiceAccountJWT(email, privateKey)
+async function getAccessToken(clientId, clientSecret, refreshToken) {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: clientId,
+      client_secret: clientSecret,
     }),
   })
   if (!res.ok) {
-    throw new Error(`Falha ao autenticar service account: ${res.status} ${await res.text()}`)
+    throw new Error(`Falha ao renovar access token: ${res.status} ${await res.text()}`)
   }
   const data = await res.json()
   return data.access_token
@@ -160,20 +123,11 @@ export default async function handler(req, res) {
 
   const expectedPassword = process.env.UPLOAD_ACCESS_PASSWORD
   const rootId = process.env.DRIVE_ROOT_FOLDER_ID
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
-  const privateKey = normalizePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY)
-  if (!expectedPassword || !rootId || !email || !privateKey) {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN
+  if (!expectedPassword || !rootId || !clientId || !clientSecret || !refreshToken) {
     res.status(500).json({ error: 'Upload não configurado no servidor.' })
-    return
-  }
-  if (!privateKey.includes('BEGIN PRIVATE KEY') || !privateKey.includes('\n')) {
-    console.error(
-      `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY malformada: length=${privateKey.length} hasNewline=${privateKey.includes('\n')} hasBegin=${privateKey.includes('BEGIN PRIVATE KEY')}`,
-    )
-    res.status(500).json({
-      error:
-        'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY malformada no servidor (não parece um PEM válido). Confira o valor no painel da Vercel: sem aspas ao redor, com o conteúdo completo do "private_key" do JSON da service account.',
-    })
     return
   }
 
@@ -203,7 +157,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = await getAccessToken(email, privateKey)
+    const token = await getAccessToken(clientId, clientSecret, refreshToken)
     const disciplineFolderId = await findOrCreateFolder(token, rootId, code)
     const typeFolderId = await findOrCreateFolder(token, disciplineFolderId, folder)
     const uploadUrl = await initResumableUpload(token, typeFolderId, fileName, mimeType, req.headers.origin)
