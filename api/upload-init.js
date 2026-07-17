@@ -18,6 +18,25 @@ import { TYPE_TO_FOLDER } from '../src/data/driveTypes.js'
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
 
+// A chave costuma chegar mal formatada dependendo de como foi colada no
+// painel de env vars (aspas literais ao redor, "\n" escapado em vez de
+// quebra de linha real, ou até a chave inteira colapsada numa única linha
+// se o campo de input não preservou as quebras de linha do PEM original).
+// Normaliza esses casos e, no pior caso (uma linha só), reconstrói o PEM
+// quebrando o corpo em blocos de 64 caracteres.
+function normalizePrivateKey(raw) {
+  let key = (raw || '').trim().replace(/^['"]|['"]$/g, '')
+  key = key.replace(/\\n/g, '\n')
+  if (key.includes('\n')) return key
+
+  const match = key.match(/-----BEGIN (RSA )?PRIVATE KEY-----(.*?)-----END (RSA )?PRIVATE KEY-----/)
+  if (!match) return key
+  const label = match[1] ? 'RSA PRIVATE KEY' : 'PRIVATE KEY'
+  const body = match[2].replace(/\s+/g, '')
+  const wrapped = body.match(/.{1,64}/g)?.join('\n') || body
+  return `-----BEGIN ${label}-----\n${wrapped}\n-----END ${label}-----\n`
+}
+
 function base64url(input) {
   return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
@@ -134,22 +153,18 @@ export default async function handler(req, res) {
   const expectedPassword = process.env.UPLOAD_ACCESS_PASSWORD
   const rootId = process.env.DRIVE_ROOT_FOLDER_ID
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
-  // Tolera aspas envolvendo o valor (comuns quando alguém cola o formato de
-  // .env, com aspas literais, direto no campo de env var da Vercel — lá elas
-  // não são removidas automaticamente como um dotenv faria) e normaliza os
-  // "\n" escapados de volta pra quebras de linha reais do PEM.
-  const privateKey = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '')
-    .trim()
-    .replace(/^['"]|['"]$/g, '')
-    .replace(/\\n/g, '\n')
+  const privateKey = normalizePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY)
   if (!expectedPassword || !rootId || !email || !privateKey) {
     res.status(500).json({ error: 'Upload não configurado no servidor.' })
     return
   }
-  if (!privateKey.includes('BEGIN PRIVATE KEY')) {
+  if (!privateKey.includes('BEGIN PRIVATE KEY') || !privateKey.includes('\n')) {
+    console.error(
+      `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY malformada: length=${privateKey.length} hasNewline=${privateKey.includes('\n')} hasBegin=${privateKey.includes('BEGIN PRIVATE KEY')}`,
+    )
     res.status(500).json({
       error:
-        'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY malformada no servidor (não parece um PEM válido). Confira se colou o valor sem aspas ao redor no painel da Vercel.',
+        'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY malformada no servidor (não parece um PEM válido). Confira o valor no painel da Vercel: sem aspas ao redor, com o conteúdo completo do "private_key" do JSON da service account.',
     })
     return
   }
